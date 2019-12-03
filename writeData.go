@@ -45,7 +45,6 @@ func (client *ClickHouseClient) WriteData(outChannel <-chan map[interface{}][]by
 					requests = make([]Request, 0, client.Configuration.Bulk)
 				}
 				for j, v := range d {
-					fmt.Println(string(v))
 					// данные из очереди, json декодировка
 					err := json.Unmarshal(v, &r)
 					if err != nil {
