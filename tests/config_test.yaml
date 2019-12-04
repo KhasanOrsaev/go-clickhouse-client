@@ -2,6 +2,6 @@ host: https://%s:%s@localhost:8443
 user: dispatcher
 password: 0UDhjs8clTWNzZlQ9KaxEjEXue9hQ3al
 workers: 5
-bulk: 100
+bulk: 1000
 queries:
   insert: insert into cs.events

@@ -30,8 +30,8 @@ func TestWriteData(t *testing.T) {
 	defer client.CloseConnection()
 	data2 := []byte(`{"dwh":{"user_id" : 122223,"type" : "cs_mailgun_delivered","source" : "333333"}}`)
 	go func() {
-		for i := 0; i < 1; i++ {
-			outChannel <- map[interface{}][]byte{2: data2}
+		for i := 0; i < 10000; i++ {
+			outChannel <- map[interface{}][]byte{i: data2}
 		}
 		close(outChannel)
 	}()
@@ -53,13 +53,13 @@ func TestWriteData(t *testing.T) {
 
 	go func() {
 		for b := range crashChannel {
-			fmt.Println("crash:", string(b))
+			t.Error("crash:", string(b))
 		}
 		ws.Done()
 	}()
 	go func() {
 		for b := range confirmChannel {
-			fmt.Println("confirm:", b)
+			fmt.Println(b)
 		}
 		ws.Done()
 	}()

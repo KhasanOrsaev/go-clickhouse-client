@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-errors/errors"
+	"io/ioutil"
 	"net/http"
 	"sync"
 )
@@ -26,7 +27,7 @@ type Request struct {
 	OfferLink     string          `json:"offer_link,omitempty"`
 	DtCreate      string          `json:"dt_create,omitempty"`
 	DtEvent       string          `json:"dt_event,omitempty"`
-	DataJSON      *json.RawMessage `json:"data_json,omitempty"`
+	DataJSON      string `json:"data_json,omitempty"`
 }
 
 func (client *ClickHouseClient) WriteData(outChannel <-chan map[interface{}][]byte, confirmChannel chan<- interface{},
@@ -93,7 +94,8 @@ func (client *ClickHouseClient) sendToDB(requests []Request, crashChannel chan<-
 		toCrashChannel(requests, crashChannel)
 		return
 	}
-	body:= append([]byte(client.Configuration.Queries["insert"] + " format JSONEachRow "), data[1:len(string(data))-1]...)
+	body := make([]byte, len(client.Configuration.Queries["insert"] + " format JSONEachRow ") + len(data[1:len(data)-1]))
+	body = append([]byte(client.Configuration.Queries["insert"] + " format JSONEachRow "), data[1:len(data)-1]...)
 	tr := &http.Transport{TLSClientConfig:&tls.Config{InsecureSkipVerify:true}}
 	httpClient := http.Client{Transport:tr}
 	request, err := http.NewRequest("POST", fmt.Sprintf(client.Configuration.Host, client.Configuration.User,
@@ -110,7 +112,8 @@ func (client *ClickHouseClient) sendToDB(requests []Request, crashChannel chan<-
 		return
 	}
 	if response.StatusCode!=200 {
-		errChannel <- errors.New(response.Status)
+		b,_ := ioutil.ReadAll(response.Body)
+		errChannel <- errors.New(string(b))
 		toCrashChannel(requests, crashChannel)
 		return
 	}
