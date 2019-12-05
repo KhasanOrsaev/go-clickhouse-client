@@ -8,6 +8,7 @@ import (
 	"github.com/go-errors/errors"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"sync"
 )
 
@@ -15,7 +16,7 @@ type DWHRequest struct {
 	Request Request `json:"dwh"`
 }
 type Request struct {
-	UserID        int             `json:"user_id,omitempty"`
+	UserID        *int             `json:"user_id,omitempty"`
 	ApplicationID string          `json:"application_id,omitempty"`
 	Type          string          `json:"type,omitempty"`
 	ProcessID     string          `json:"process_id,omitempty"`
@@ -42,7 +43,7 @@ func (client *ClickHouseClient) WriteData(outChannel <-chan map[interface{}][]by
 				r := DWHRequest{}
 				// если достигнуто предельное значение в пачке, то пишем в базу
 				if len(requests) == client.Configuration.Bulk {
-					client.sendToDB(requests, crashChannel, errChannel)
+					client.sendToDB(&requests, crashChannel, errChannel)
 					requests = make([]Request, 0, client.Configuration.Bulk)
 				}
 				for j, v := range d {
@@ -56,10 +57,10 @@ func (client *ClickHouseClient) WriteData(outChannel <-chan map[interface{}][]by
 					}
 
 					// validation
-					if r.Request.UserID == 0 && r.Request.ApplicationID=="" {
+					if r.Request.UserID == nil && r.Request.ApplicationID=="" {
 						confirmChannel <- j
 						crashChannel <- v
-						errChannel <- errors.New("user_id and application_id is empty")
+						errChannel <- errors.New("user_id and application_id is empty on id=" + strconv.Itoa(j.(int)))
 						continue
 					}
 
@@ -72,7 +73,7 @@ func (client *ClickHouseClient) WriteData(outChannel <-chan map[interface{}][]by
 			}
 			// если по завершению цикла в пачке есть записи, то пишем в базу
 			if len(requests) > 0 {
-				client.sendToDB(requests, crashChannel, errChannel)
+				client.sendToDB(&requests, crashChannel, errChannel)
 			}
 		}(outChannel, confirmChannel, crashChannel, &ws)
 	}
@@ -87,11 +88,11 @@ func toCrashChannel(requests []Request, crashChannel chan<- []byte) {
 	}
 }
 
-func (client *ClickHouseClient) sendToDB(requests []Request, crashChannel chan<- []byte, errChannel chan<- error) {
+func (client *ClickHouseClient) sendToDB(requests *[]Request, crashChannel chan<- []byte, errChannel chan<- error) {
 	data,err := json.Marshal(requests)
 	if err != nil {
 		errChannel <- errors.Wrap(err ,-1)
-		toCrashChannel(requests, crashChannel)
+		toCrashChannel(*requests, crashChannel)
 		return
 	}
 	body := make([]byte, len(client.Configuration.Queries["insert"] + " format JSONEachRow ") + len(data[1:len(data)-1]))
@@ -102,19 +103,19 @@ func (client *ClickHouseClient) sendToDB(requests []Request, crashChannel chan<-
 		client.Configuration.Password),	bytes.NewBuffer(body))
 	if err!= nil {
 		errChannel <- errors.Wrap(err ,-1)
-		toCrashChannel(requests, crashChannel)
+		toCrashChannel(*requests, crashChannel)
 		return
 	}
 	response, err := httpClient.Do(request)
 	if err!= nil {
 		errChannel <- errors.Wrap(err ,-1)
-		toCrashChannel(requests, crashChannel)
+		toCrashChannel(*requests, crashChannel)
 		return
 	}
 	if response.StatusCode!=200 {
 		b,_ := ioutil.ReadAll(response.Body)
 		errChannel <- errors.New(string(b))
-		toCrashChannel(requests, crashChannel)
+		toCrashChannel(*requests, crashChannel)
 		return
 	}
 }
