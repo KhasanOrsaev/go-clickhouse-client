@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
+    <data-source source="LOCAL" name="cs@localhost" uuid="5217544c-7c00-4d54-9d21-4116a5f55c7e">
+      <driver-ref>clickhouse</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>ru.yandex.clickhouse.ClickHouseDriver</jdbc-driver>
+      <jdbc-url>jdbc:clickhouse://localhost:8443/cs</jdbc-url>
+      <driver-properties>
+        <property name="ssl" value="true" />
+        <property name="sslmode" value="none" />
+      </driver-properties>
+    </data-source>
+    <data-source source="LOCAL" name="cs@test.api-events.cs22.ru" uuid="219ddc4d-23eb-4978-9553-f1d2d5460368">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://test.api-events.cs22.ru:5432/cs</jdbc-url>
+    </data-source>
+  </component>
+</project>
